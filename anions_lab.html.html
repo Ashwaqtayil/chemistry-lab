@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مختبر اكتساب الإلكترونات | إعداد: أشواق الخديدي</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* أزرار اختيار المجموعة */
+        .group-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .group-btn {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .group-btn:hover { border-color: #28a745; color: #28a745; }
+        .group-btn.active {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+            box-shadow: 0 4px 10px rgba(40,167,69,0.3);
+        }
+
+        /* التخطيط الرئيسي */
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* ====== الجدول الجانبي ====== */
+        .side-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 20px;
+            min-width: 380px;
+            flex-shrink: 0;
+        }
+        .side-table h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #28a745;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 6px;
+            font-size: 13px;
+            text-align: center;
+        }
+        th:first-child { border-top-right-radius: 8px; }
+        th:last-child { border-top-left-radius: 8px; }
+        td {
+            padding: 12px 6px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+        tr.atom-row { cursor: pointer; transition: all 0.3s; }
+        tr.atom-row:hover { background-color: #f1fff4; }
+        tr.atom-row.active {
+            background-color: #d4edda;
+            font-weight: bold;
+            border-right: 4px solid #28a745;
+        }
+        tr.atom-row.active td:first-child { color: #28a745; }
+        
+        .symbol-cell { font-weight: bold; font-size: 16px; color: #333; }
+        .valence-count { font-weight: bold; color: #28a745; font-size: 16px; }
+        .gain-count { font-weight: bold; color: #007bff; font-size: 16px; }
+
+        .hint-box {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #d1ecf1;
+            border-right: 4px solid #17a2b8;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #0c5460;
+            line-height: 1.6;
+        }
+        .hint-box strong { color: #28a745; }
+
+        /* ====== حاوية الذرة ====== */
+        .atom-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nucleus {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            background-color: #b8e6c1;
+            border: 2px solid #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: #000;
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .nucleus:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(184, 230, 193, 0.8);
+        }
+
+        .orbit {
+            position: absolute;
+            border: 2px solid #7a8b99;
+            border-radius: 50%;
+            pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .electron {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background-color: #6c7a89;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* إلكترونات التكافؤ الأصلية */
+        .electron.valence {
+            background-color: #ff3b30;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 0 10px rgba(255, 59, 48, 0.8), inset -2px -2px 4px rgba(0,0,0,0.4);
+            z-index: 5;
+        }
+
+        /* الإلكترونات المكتسبة (تظهر بلون أخضر) */
+        .electron.gained {
+            background-color: #28a745;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 0 12px rgba(40, 167, 69, 0.9), inset -2px -2px 4px rgba(0,0,0,0.4);
+            z-index: 6;
+            opacity: 0;
+            transform: scale(0);
+        }
+        .electron.gained.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .electron:hover { transform: scale(1.4); z-index: 20; }
+        .electron.gained.visible:hover { transform: scale(1.4); }
+
+        /* ====== لوحة التحكم السفلية ====== */
+        .controls {
+            margin-top: 25px;
+            text-align: center;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-width: 400px;
+            max-width: 700px;
+            width: 100%;
+        }
+        #statusText {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            transition: color 0.3s;
+        }
+        #statusText.ionized { color: #28a745; }
+        
+        .electron-progress {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            min-height: 24px;
+        }
+        .progress-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.2);
+            transition: all 0.4s;
+        }
+        .progress-dot.filled {
+            background-color: #28a745;
+            box-shadow: 0 0 6px rgba(40, 167, 69, 0.7);
+            transform: scale(1.1);
+        }
+        .progress-dot.original {
+            background-color: #ff3b30;
+            box-shadow: 0 0 6px rgba(255, 59, 48, 0.6);
+        }
+
+        button.action-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button.action-btn:hover {
+            background-color: #1e7e34;
+            transform: translateY(-2px);
+        }
+        button.action-btn.added-mode { background-color: #007bff; }
+        button.action-btn.added-mode:hover { background-color: #0056b3; }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            white-space: nowrap;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+        }
+        #tooltip.show { opacity: 1; }
+
+        .size-indicator {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .size-indicator.grown { color: #28a745; font-weight: bold; }
+
+        /* ====== توثيق حقوق التصميم ====== */
+        .design-credit {
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #ffffff 0%, #f1fff4 100%);
+            border-radius: 12px;
+            border-right: 5px solid #28a745;
+            border-left: 5px solid #007bff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            max-width: 700px;
+            width: 100%;
+        }
+        .design-credit .credit-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .design-credit .credit-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 4px;
+        }
+        .design-credit .credit-school {
+            font-size: 15px;
+            color: #007bff;
+            font-weight: 600;
+        }
+        .design-credit .credit-divider {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(to right, #28a745, #007bff);
+            margin: 10px auto;
+            border-radius: 3px;
+        }
+        .design-credit .credit-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-layout { flex-direction: column; align-items: center; }
+            .side-table { width: 100%; max-width: 500px; }
+            .atom-container { width: 500px; height: 500px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧪 مختبر اكتساب الإلكترونات</h1>
+    <p class="subtitle">اختاري المجموعة ثم العنصر، ثم اضغطي على الزر لإضافة الإلكترونات بالتتابع حتى الوضع المستقر</p>
+
+    <!-- أزرار اختيار المجموعة -->
+    <div class="group-selector" id="groupSelector">
+        <button class="group-btn active" data-group="group15">المجموعة الخامسة عشر</button>
+        <button class="group-btn" data-group="group16">المجموعة السادسة عشر</button>
+        <button class="group-btn" data-group="group17">المجموعة السابعة عشر</button>
+    </div>
+
+    <div class="main-layout">
+
+        <!-- الجدول الجانبي -->
+        <aside class="side-table">
+            <h2 id="tableTitle">📋 عناصر المجموعة الخامسة عشر</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>العنصر</th>
+                        <th>الرمز</th>
+                        <th>العدد الذري</th>
+                        <th>إلكترونات التكافؤ</th>
+                        <th>يكتسب</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div class="hint-box" id="hintBox">
+                💡 <strong>ملاحظة:</strong><br>
+                عناصر المجموعة الخامسة عشر تمتلك <strong>5 إلكترونات تكافؤ</strong> وتحتاج إلى <strong>3 إلكترونات</strong> للوصول إلى الاستقرار.
+            </div>
+        </aside>
+
+        <!-- الرسم البياني -->
+        <div>
+            <div class="atom-container" id="atom-container">
+                <div id="tooltip"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم -->
+    <div class="controls">
+        <div id="statusText">ذرة النيتروجين المتعادلة (N)</div>
+        <div class="electron-progress" id="progressBar"></div>
+        <button class="action-btn" id="toggleBtn">إضافة إلكترون واحد</button>
+        <div class="size-indicator" id="sizeIndicator">نصف القطر التقريبي: 65 بيكومتر</div>
+    </div>
+
+    <!-- توثيق حقوق التصميم والإعداد -->
+    <div class="design-credit">
+        <div class="credit-icon">🎓✨</div>
+        <div class="credit-title">إعداد وتصميم</div>
+        <div class="credit-divider"></div>
+        <div class="credit-name">المعلمة: أشواق الخديدي</div>
+        <div class="credit-school">الثانوية الثالثة بالطائف</div>
+    </div>
+
+<script>
+    const container = document.getElementById('atom-container');
+    const tooltip = document.getElementById('tooltip');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const statusText = document.getElementById('statusText');
+    const sizeIndicator = document.getElementById('sizeIndicator');
+    const tableBody = document.getElementById('tableBody');
+    const tableTitle = document.getElementById('tableTitle');
+    const hintBox = document.getElementById('hintBox');
+    const groupSelector = document.getElementById('groupSelector');
+    const progressBar = document.getElementById('progressBar');
+
+    let currentGroup = 'group15';
+    let currentAtom = 'N';
+    let addedCount = 0;
+
+    const groupsData = {
+        group15: {
+            title: '📋 عناصر المجموعة الخامسة عشر - مجموعة النيتروجين',
+            valence: 5, gainCount: 3,
+            hint: 'عناصر المجموعة الخامسة عشر تمتلك <strong>5 إلكترونات تكافؤ</strong>، وتكتسب <strong>3 إلكترونات</strong> للوصول إلى الوضع المستقر (8 إلكترونات)، فتتحول إلى أيون بشحنة <strong>-3</strong>.',
+            chargeName: 'ثلاثي السالب (-3)',
+            atoms: {
+                'N':  { name: 'النيتروجين', symbol: 'N', radius: 65, atomicNumber: 7,
+                    shells: [{ r: 60, e: 2 }, { r: 110, e: 5 }] },
+                'P':  { name: 'الفوسفور', symbol: 'P', radius: 100, atomicNumber: 15,
+                    shells: [{ r: 55, e: 2 }, { r: 90, e: 8 }, { r: 130, e: 5 }] },
+                'As': { name: 'الزرنيخ', symbol: 'As', radius: 115, atomicNumber: 33,
+                    shells: [{ r: 50, e: 2 }, { r: 75, e: 8 }, { r: 105, e: 18 }, { r: 140, e: 5 }] }
+            }
+        },
+        group16: {
+            title: '📋 عناصر المجموعة السادسة عشر - مجموعة الأكسجين',
+            valence: 6, gainCount: 2,
+            hint: 'عناصر المجموعة السادسة عشر تمتلك <strong>6 إلكترونات تكافؤ</strong>، وتكتسب <strong>إلكترونين</strong> للوصول إلى الوضع المستقر (8 إلكترونات)، فتتحول إلى أيون بشحنة <strong>-2</strong>.',
+            chargeName: 'ثنائي السالب (-2)',
+            atoms: {
+                'O':  { name: 'الأكسجين', symbol: 'O', radius: 60, atomicNumber: 8,
+                    shells: [{ r: 60, e: 2 }, { r: 110, e: 6 }] },
+                'S':  { name: 'الكبريت', symbol: 'S', radius: 100, atomicNumber: 16,
+                    shells: [{ r: 55, e: 2 }, { r: 90, e: 8 }, { r: 130, e: 6 }] },
+                'Se': { name: 'السيلينيوم', symbol: 'Se', radius: 115, atomicNumber: 34,
+                    shells: [{ r: 50, e: 2 }, { r: 75, e: 8 }, { r: 105, e: 18 }, { r: 140, e: 6 }] }
+            }
+        },
+        group17: {
+            title: '📋 عناصر المجموعة السابعة عشر - الهالوجينات',
+            valence: 7, gainCount: 1,
+            hint: 'عناصر المجموعة السابعة عشر تمتلك <strong>7 إلكترونات تكافؤ</strong>، وتكتسب <strong>إلكتروناً واحداً</strong> للوصول إلى الوضع المستقر (8 إلكترونات)، فتتحول إلى أيون بشحنة <strong>-1</strong>.',
+            chargeName: 'أحادي السالب (-1)',
+            atoms: {
+                'F':  { name: 'الفلور', symbol: 'F', radius: 50, atomicNumber: 9,
+                    shells: [{ r: 60, e: 2 }, { r: 110, e: 7 }] },
+                'Cl': { name: 'الكلور', symbol: 'Cl', radius: 100, atomicNumber: 17,
+                    shells: [{ r: 55, e: 2 }, { r: 90, e: 8 }, { r: 130, e: 7 }] },
+                'Br': { name: 'البروم', symbol: 'Br', radius: 115, atomicNumber: 35,
+                    shells: [{ r: 50, e: 2 }, { r: 75, e: 8 }, { r: 105, e: 18 }, { r: 140, e: 7 }] }
+            }
+        }
+    };
+
+    function buildTable() {
+        const group = groupsData[currentGroup];
+        tableTitle.textContent = group.title;
+        hintBox.innerHTML = `💡 <strong>ملاحظة:</strong><br>${group.hint}`;
+        
+        tableBody.innerHTML = '';
+        Object.keys(group.atoms).forEach(key => {
+            const atom = group.atoms[key];
+            const row = document.createElement('tr');
+            row.className = 'atom-row';
+            if (key === currentAtom) row.classList.add('active');
+            row.dataset.atom = key;
+            row.innerHTML = `
+                <td>${atom.name}</td>
+                <td class="symbol-cell">${atom.symbol}</td>
+                <td>${atom.atomicNumber}</td>
+                <td class="valence-count">${group.valence}</td>
+                <td class="gain-count">${group.gainCount}</td>
+            `;
+            row.addEventListener('click', () => selectAtom(key));
+            tableBody.appendChild(row);
+        });
+    }
+
+    function selectAtom(atomKey) {
+        currentAtom = atomKey;
+        document.querySelectorAll('.atom-row').forEach(r => r.classList.remove('active'));
+        const activeRow = document.querySelector(`.atom-row[data-atom="${atomKey}"]`);
+        if (activeRow) activeRow.classList.add('active');
+        buildAtom(atomKey);
+        resetIonization();
+    }
+
+    function getElectronPosition(index, total, radius) {
+        const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+        return {
+            x: radius * Math.cos(angle),
+            y: radius * Math.sin(angle)
+        };
+    }
+
+    function repositionOuterElectrons(atomKey, addedCount) {
+        const group = groupsData[currentGroup];
+        const atom = group.atoms[atomKey];
+        const outerOrbit = document.getElementById('outer-orbit');
+        if (!outerOrbit) return;
+
+        const baseRadius = parseFloat(outerOrbit.dataset.baseRadius);
+        const currentRadius = baseRadius * (1 + 0.06 * addedCount);
+
+        const originalValence = group.valence;
+        const totalElectrons = originalValence + addedCount;
+
+        const originalElectrons = document.querySelectorAll('.electron.valence:not(.gained)');
+        originalElectrons.forEach((el, i) => {
+            const pos = getElectronPosition(i, totalElectrons, currentRadius);
+            el.style.left = `calc(50% + ${pos.x}px - 8px)`;
+            el.style.top = `calc(50% + ${pos.y}px - 8px)`;
+        });
+
+        for (let i = 0; i < group.gainCount; i++) {
+            const el = document.getElementById(`gained-${i}`);
+            if (!el) continue;
+            const indexInFull = originalValence + i;
+            const pos = getElectronPosition(indexInFull, totalElectrons, currentRadius);
+            el.style.left = `calc(50% + ${pos.x}px - 8px)`;
+            el.style.top = `calc(50% + ${pos.y}px - 8px)`;
+        }
+
+        outerOrbit.style.width = (currentRadius * 2) + 'px';
+        outerOrbit.style.height = (currentRadius * 2) + 'px';
+        outerOrbit.style.left = `calc(50% - ${currentRadius}px)`;
+        outerOrbit.style.top = `calc(50% - ${currentRadius}px)`;
+    }
+
+    function buildAtom(atomKey) {
+        const tooltipEl = document.getElementById('tooltip');
+        container.innerHTML = '';
+        container.appendChild(tooltipEl);
+
+        const group = groupsData[currentGroup];
+        const atom = group.atoms[atomKey];
+
+        const nucleus = document.createElement('div');
+        nucleus.className = 'nucleus';
+        nucleus.textContent = atom.symbol;
+        nucleus.addEventListener('mouseenter', (e) => showTooltip(e, `نواة ${atom.name} (${atom.symbol})`));
+        nucleus.addEventListener('mousemove', moveTooltip);
+        nucleus.addEventListener('mouseleave', hideTooltip);
+        container.appendChild(nucleus);
+
+        atom.shells.forEach((shell, shellIndex) => {
+            const isOuterShell = (shellIndex === atom.shells.length - 1);
+
+            const orbit = document.createElement('div');
+            orbit.className = 'orbit';
+            orbit.style.width = (shell.r * 2) + 'px';
+            orbit.style.height = (shell.r * 2) + 'px';
+            orbit.style.left = `calc(50% - ${shell.r}px)`;
+            orbit.style.top = `calc(50% - ${shell.r}px)`;
+            
+            if (isOuterShell) {
+                orbit.id = 'outer-orbit';
+                orbit.dataset.baseRadius = shell.r;
+            }
+            container.appendChild(orbit);
+
+            for (let i = 0; i < shell.e; i++) {
+                const electron = document.createElement('div');
+                electron.className = 'electron';
+                const isValence = isOuterShell;
+                
+                if (isValence) electron.classList.add('valence');
+
+                if (!isValence) {
+                    const angle = (i / shell.e) * 2 * Math.PI - Math.PI / 2;
+                    const x = shell.r * Math.cos(angle);
+                    const y = shell.r * Math.sin(angle);
+                    electron.style.left = `calc(50% + ${x}px - 7px)`;
+                    electron.style.top = `calc(50% + ${y}px - 7px)`;
+                }
+
+                electron.addEventListener('mouseenter', (e) => {
+                    let text;
+                    if (isValence) {
+                        text = `إلكترون تكافؤ في ${atom.name}`;
+                    } else {
+                        text = `إلكترون في المستوى ${shellIndex + 1}`;
+                    }
+                    showTooltip(e, text);
+                });
+                electron.addEventListener('mousemove', moveTooltip);
+                electron.addEventListener('mouseleave', hideTooltip);
+
+                container.appendChild(electron);
+            }
+        });
+
+        for (let i = 0; i < group.gainCount; i++) {
+            const electron = document.createElement('div');
+            electron.className = 'electron gained';
+            electron.id = `gained-${i}`;
+            electron.dataset.gainedIndex = i;
+
+            electron.addEventListener('mouseenter', (e) => {
+                const idx = parseInt(electron.dataset.gainedIndex) + 1;
+                showTooltip(e, `إلكترون مكتسب رقم ${idx}`);
+            });
+            electron.addEventListener('mousemove', moveTooltip);
+            electron.addEventListener('mouseleave', hideTooltip);
+
+            container.appendChild(electron);
+        }
+
+        repositionOuterElectrons(atomKey, 0);
+    }
+
+    function showTooltip(e, text) {
+        tooltip.textContent = text;
+        tooltip.classList.add('show');
+        moveTooltip(e);
+    }
+    function moveTooltip(e) {
+        const rect = container.getBoundingClientRect();
+        tooltip.style.left = (e.clientX - rect.left) + 'px';
+        tooltip.style.top = (e.clientY - rect.top) + 'px';
+    }
+    function hideTooltip() { tooltip.classList.remove('show'); }
+
+    function buildProgressBar() {
+        const group = groupsData[currentGroup];
+        progressBar.innerHTML = '';
+        const total = group.valence + group.gainCount;
+        for (let i = 0; i < total; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'progress-dot';
+            if (i < group.valence) dot.classList.add('original');
+            progressBar.appendChild(dot);
+        }
+    }
+
+    function updateProgressBar() {
+        const group = groupsData[currentGroup];
+        const dots = progressBar.querySelectorAll('.progress-dot');
+        dots.forEach((dot, i) => {
+            if (i >= group.valence) {
+                const gainIdx = i - group.valence;
+                if (gainIdx < addedCount) dot.classList.add('filled');
+                else dot.classList.remove('filled');
+            }
+        });
+    }
+
+    function resetIonization() {
+        addedCount = 0;
+        const atom = groupsData[currentGroup].atoms[currentAtom];
+        
+        buildProgressBar();
+        
+        toggleBtn.textContent = `إضافة إلكترون واحد (اكتساب)`;
+        toggleBtn.classList.remove('added-mode');
+        statusText.textContent = `ذرة ${atom.name} المتعادلة (${atom.symbol}) - الحجم الطبيعي`;
+        statusText.classList.remove('ionized');
+        sizeIndicator.textContent = `نصف القطر التقريبي: ${atom.radius} بيكومتر`;
+        sizeIndicator.classList.remove('grown');
+        
+        document.querySelectorAll('.electron.gained').forEach(el => el.classList.remove('visible'));
+        
+        repositionOuterElectrons(currentAtom, 0);
+        
+        updateProgressBar();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const group = groupsData[currentGroup];
+        const atom = group.atoms[currentAtom];
+        const gainCount = group.gainCount;
+
+        if (addedCount >= gainCount) {
+            resetIonization();
+            return;
+        }
+
+        const electronToAdd = document.getElementById(`gained-${addedCount}`);
+        if (electronToAdd) {
+            electronToAdd.classList.add('visible');
+        }
+        addedCount++;
+
+        repositionOuterElectrons(currentAtom, addedCount);
+        updateProgressBar();
+
+        const remaining = gainCount - addedCount;
+        const newRadius = Math.round(atom.radius * (1 + 0.08 * addedCount));
+        
+        if (addedCount < gainCount) {
+            statusText.textContent = `أيون ${atom.name} (${atom.symbol}) - تم اكتساب ${addedCount} إلكترون (متبقي ${remaining})`;
+            statusText.classList.add('ionized');
+            toggleBtn.textContent = `إضافة إلكترون رقم ${addedCount + 1}`;
+            toggleBtn.classList.add('added-mode');
+            sizeIndicator.textContent = `نصف القطر التقريبي: ${newRadius} بيكومتر (أكبر)`;
+            sizeIndicator.classList.add('grown');
+        } else {
+            statusText.textContent = `أيون ${atom.name} (${atom.symbol}${toSuperscript(gainCount)}) - شحنة ${group.chargeName} - الوضع المستقر (8 إلكترونات)!`;
+            statusText.classList.add('ionized');
+            toggleBtn.textContent = `إعادة تعيين الذرة`;
+            toggleBtn.classList.remove('added-mode');
+            sizeIndicator.textContent = `نصف القطر التقريبي: ${newRadius} بيكومتر (أكبر - وصل للاستقرار)`;
+            sizeIndicator.classList.add('grown');
+        }
+    });
+
+    function toSuperscript(num) {
+        const map = { '1': '⁻', '2': '²⁻', '3': '³⁻' };
+        return map[num] || `-${num}`;
+    }
+
+    groupSelector.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('group-btn')) return;
+        document.querySelectorAll('.group-btn').forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        currentGroup = e.target.dataset.group;
+        currentAtom = Object.keys(groupsData[currentGroup].atoms)[0];
+        buildTable();
+        buildAtom(currentAtom);
+        resetIonization();
+    });
+
+    window.onload = () => {
+        buildTable();
+        buildAtom('N');
+        resetIonization();
+    };
+</script>
+</body>
+</html>
